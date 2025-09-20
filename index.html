@@ -453,16 +453,34 @@
             }
         });
 
-        // Smooth scroll for links
+        // Smooth scroll for in-page hash links only
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
+                const hash = this.getAttribute('href');
+
+                // If it's just a bare '#' do nothing special (allow default or no-op)
+                if (!hash || hash === '#') return;
+
+                // Ensure the href is a same-document hash (starts with '#') and not an absolute/relative URL
+                // Also support links that include the current location.pathname + hash (e.g. '/path#id') by
+                // only handling pure-hash hrefs here.
+                if (hash.charAt(0) !== '#') return;
+
+                const target = document.querySelector(hash);
+
+                // If there's no element with that ID, allow default behavior (so external handlers can run)
+                if (!target) return;
+
+                // Intercept and perform smooth scroll
                 e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                // Update the URL hash without jumping (pushState avoids immediate jump in some browsers)
+                try {
+                    history.pushState(null, '', hash);
+                } catch (err) {
+                    // Fallback: set location.hash (may jump) if pushState not available
+                    location.hash = hash;
                 }
             });
         });
